@@ -2405,34 +2405,6 @@ static int netcam_setup_ftp(netcam_context_ptr netcam, struct url_t *url)
     return 0;
 }
 
-static int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type)
-{
-    int ret;
-    AVStream *st;
-    AVCodecContext *dec_ctx = NULL;
-    AVCodec *dec = NULL;
-    ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
-    if (ret < 0) {
-		MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: Could not find stream %s in input!", av_get_media_type_string(type));
-        return ret;
-    } else {
-        *stream_idx = ret;
-        st = fmt_ctx->streams[*stream_idx];
-        /* find decoder for the stream */
-        dec_ctx = st->codec;
-        dec = avcodec_find_decoder(dec_ctx->codec_id);
-        if (!dec) {
-    		MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: Failed to find %s codec!", av_get_media_type_string(type));
-            return ret;
-        }
-        if ((ret = avcodec_open2(dec_ctx, dec, NULL)) < 0) {
-    		MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: Failed to open %s codec!", av_get_media_type_string(type));
-            return ret;
-        }
-    }
-    return 0;
-}
-
 /**
  * netcam_recv
  *
