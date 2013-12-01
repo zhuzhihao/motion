@@ -113,15 +113,6 @@ typedef struct file_context {
 #define NCS_BLOCK               2  /* streaming is done via MJPG-block */
 #define NCS_RTSP                3  /* streaming is done via RTSP */
 
-struct rtsp_context {
-	AVFormatContext*      format_context;
-	AVCodecContext*       codec_context;
-	int                   video_stream_index;
-	char*                 path;
-	char*                 user;
-	char*                 pass;
-};
-
 /*
  * struct netcam_context contains all the structures and other data
  * for an individual netcam.
