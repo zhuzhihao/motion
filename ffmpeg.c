@@ -374,7 +374,7 @@ static AVOutputFormat *get_oformat(const char *codec, char *filename)
 #endif
         /* Manually override the codec id. */
         if (of)
-            of->video_codec = CODEC_ID_MSMPEG4V2;
+            of->video_codec = AV_CODEC_ID_MSMPEG4V2;
 
     } else if (strcmp(codec, "swf") == 0) {
         ext = ".swf";
@@ -390,7 +390,7 @@ static AVOutputFormat *get_oformat(const char *codec, char *filename)
 #else        
         of = av_guess_format("flv", NULL, NULL);
 #endif        
-        of->video_codec = CODEC_ID_FLV1;
+        of->video_codec = AV_CODEC_ID_FLV1;
     } else if (strcmp(codec, "ffv1") == 0) {
         ext = ".avi";
 #ifdef GUESS_NO_DEPRECATED
@@ -403,7 +403,7 @@ static AVOutputFormat *get_oformat(const char *codec, char *filename)
          * Requires strict_std_compliance to be <= -2
          */
         if (of)
-            of->video_codec = CODEC_ID_FFV1;
+            of->video_codec = AV_CODEC_ID_FFV1;
 
     } else if (strcmp(codec, "mov") == 0) {
         ext = ".mov";
@@ -499,7 +499,7 @@ struct ffmpeg *ffmpeg_open(char *ffmpeg_video_codec, char *filename,
 
     /* Create a new video stream and initialize the codecs. */
     ffmpeg->video_st = NULL;
-    if (ffmpeg->oc->oformat->video_codec != CODEC_ID_NONE) {
+    if (ffmpeg->oc->oformat->video_codec != AV_CODEC_ID_NONE) {
 #if defined FF_API_NEW_AVIO 
         ffmpeg->video_st = avformat_new_stream(ffmpeg->oc, NULL /* Codec */);
 #else
@@ -526,7 +526,7 @@ struct ffmpeg *ffmpeg_open(char *ffmpeg_video_codec, char *filename,
 #else
     c->codec_type = AVMEDIA_TYPE_VIDEO;
 #endif    
-    is_mpeg1      = c->codec_id == CODEC_ID_MPEG1VIDEO;
+    is_mpeg1      = c->codec_id == AV_CODEC_ID_MPEG1VIDEO;
 
     if (strcmp(ffmpeg_video_codec, "ffv1") == 0)
         c->strict_std_compliance = -2;
@@ -595,7 +595,7 @@ struct ffmpeg *ffmpeg_open(char *ffmpeg_video_codec, char *filename,
     }
 
     /* Set the picture format - need in ffmpeg starting round April-May 2005 */
-    c->pix_fmt = PIX_FMT_YUV420P;
+    c->pix_fmt = AV_PIX_FMT_YUV420P;
 
     /* Get a mutex lock. */
     pthread_mutex_lock(&global_lock);
@@ -632,7 +632,7 @@ struct ffmpeg *ffmpeg_open(char *ffmpeg_video_codec, char *filename,
     }
 
     /* Allocate the encoded raw picture. */
-    ffmpeg->picture = avcodec_alloc_frame();
+    ffmpeg->picture = av_frame_alloc();
 
     if (!ffmpeg->picture) {
         MOTION_LOG(ERR, TYPE_ENCODER, NO_ERRNO, "%s: avcodec_alloc_frame -"
@@ -949,7 +949,7 @@ AVFrame *ffmpeg_prepare_frame(struct ffmpeg *ffmpeg, unsigned char *y,
 {
     AVFrame *picture;
 
-    picture = avcodec_alloc_frame();
+    picture = av_frame_alloc();
 
     if (!picture) {
         MOTION_LOG(ERR, TYPE_ENCODER, SHOW_ERRNO, "%s: Could not alloc frame");
@@ -971,7 +971,8 @@ AVFrame *ffmpeg_prepare_frame(struct ffmpeg *ffmpeg, unsigned char *y,
     return picture;
 }
 
-
+// remove deinterlace function as in newer ffmpeg lib the effort needed to deinterlace is huge (via yadif filter)
+#if 0
 /**
  * ffmpeg_deinterlace
  *      Make the image suitable for deinterlacing using ffmpeg, then deinterlace the picture.
@@ -998,7 +999,7 @@ void ffmpeg_deinterlace(unsigned char *img, int width, int height)
     picture.linesize[2] = width2;
 
     /* We assume using 'PIX_FMT_YUV420P' always */
-    avpicture_deinterlace(&picture, &picture, PIX_FMT_YUV420P, width, height);
+    avpicture_deinterlace(&picture, &picture, AV_PIX_FMT_YUV420P, width, height);
 
 #ifndef __SSE_MATH__
     __asm__ __volatile__ ( "emms");
@@ -1006,6 +1007,7 @@ void ffmpeg_deinterlace(unsigned char *img, int width, int height)
 
     return;
 }
+#endif
 
 /**
  * ffmpeg_avcodec_log

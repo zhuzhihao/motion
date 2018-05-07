@@ -266,7 +266,7 @@ static int netcam_read_rtsp_image(netcam_context_ptr netcam)
   buffer = netcam->receiving;
   buffer->used = 0;
 
-  AVFrame *frame = avcodec_alloc_frame();
+  AVFrame *frame = av_frame_alloc();
 
   AVPacket packet;
   

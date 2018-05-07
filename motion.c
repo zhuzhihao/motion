@@ -1366,10 +1366,12 @@ static void *motion_loop(void *arg)
                 }
                 cnt->missing_frame_counter = 0;
 
+#if 0
 #ifdef HAVE_FFMPEG
                 /* Deinterlace the image with ffmpeg, before the image is modified. */
                 if (cnt->conf.ffmpeg_deinterlace) 
                     ffmpeg_deinterlace(cnt->current_image->image, cnt->imgs.width, cnt->imgs.height);
+#endif
 #endif
 
                 /* 
