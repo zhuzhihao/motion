@@ -231,12 +231,8 @@ static void rtsp_free_context(struct rtsp_context *ctxt)
 static int rtsp_connect(netcam_context_ptr netcam)
 {
   if (netcam->rtsp == NULL) {
-    netcam->rtsp = rtsp_new_context();
-
-    if (netcam->rtsp == NULL) {
-      MOTION_LOG(ALR, TYPE_NETCAM, NO_ERRNO, "%s: unable to create context(%s)", netcam->rtsp->path);
-      return -1;
-    }
+    MOTION_LOG(ALR, TYPE_NETCAM, NO_ERRNO, "%s: rtsp_connect no context");
+    return -1;
   }
 
   netcam->rtsp->format_context = avformat_alloc_context( );
@@ -251,8 +247,6 @@ static int rtsp_connect(netcam_context_ptr netcam)
   int ret = avformat_open_input(&netcam->rtsp->format_context, netcam->rtsp->path, NULL, &opts);
   if (ret < 0) {
     MOTION_LOG(ALR, TYPE_NETCAM, NO_ERRNO, "%s: unable to open input(%s): %d - %s", netcam->rtsp->path, ret, av_err2str(ret));
-    rtsp_free_context(netcam->rtsp);
-    netcam->rtsp = NULL;
     return -1;
   }
 
@@ -260,16 +254,12 @@ static int rtsp_connect(netcam_context_ptr netcam)
   ret = avformat_find_stream_info(netcam->rtsp->format_context, NULL);
   if (ret < 0) {
     MOTION_LOG(ALR, TYPE_NETCAM, NO_ERRNO, "%s: unable to find stream info: %d", ret);
-    rtsp_free_context(netcam->rtsp);
-    netcam->rtsp = NULL;
     return -1;
   }
 
   ret = open_codec_context(&netcam->rtsp->video_stream_index, netcam->rtsp->format_context, AVMEDIA_TYPE_VIDEO);
   if (ret < 0) {
     MOTION_LOG(ALR, TYPE_NETCAM, NO_ERRNO, "%s: unable to open codec context: %d", ret);
-    rtsp_free_context(netcam->rtsp);
-    netcam->rtsp = NULL;
     return -1;
   }
   
@@ -283,12 +273,6 @@ static int rtsp_connect(netcam_context_ptr netcam)
 
 static int netcam_read_rtsp_image(netcam_context_ptr netcam)
 {
-  if (netcam->rtsp == NULL) {
-    if (rtsp_connect(netcam) < 0) {
-      return -1;
-    }
-  }
-
   AVCodecContext *cc = netcam->rtsp->codec_context;
   AVFormatContext *fc = netcam->rtsp->format_context;
   netcam_buff_ptr buffer;
@@ -388,6 +372,7 @@ int netcam_setup_rtsp(netcam_context_ptr netcam, struct url_t *url)
 {
   struct context *cnt = netcam->cnt;
   const char *ptr;
+  int ret;
   
   netcam->caps.streaming = NCS_RTSP;
   netcam->rtsp = rtsp_new_context();
@@ -438,10 +423,15 @@ int netcam_setup_rtsp(netcam_context_ptr netcam, struct url_t *url)
    * The RTSP context should be all ready to attempt a connection with
    * the server, so we try ....
    */
-  rtsp_connect(netcam);
+  ret = rtsp_connect(netcam);
+  if (ret < 0)
+  {
+    rtsp_free_context(netcam->rtsp);
+    netcam->rtsp = NULL;
+    return ret;
+  }
 
   netcam->get_image = netcam_read_rtsp_image;
-
   return 0;
 }
 
@@ -451,4 +441,23 @@ void netcam_shutdown_rtsp(netcam_context_ptr netcam)
     rtsp_free_context(netcam->rtsp);
     netcam->rtsp = NULL;
   }
+}
+
+void netcam_reconnect_rtsp(netcam_context_ptr netcam)
+{
+  if (!netcam->rtsp)
+  {
+    /* incorrect calling sequence */
+    return;
+  }
+  
+  if (netcam->rtsp->format_context != NULL) {
+      avformat_close_input(&netcam->rtsp->format_context);
+  }
+  
+  if (netcam->rtsp->codec_context != NULL) {
+      avcodec_close(netcam->rtsp->codec_context);
+  }
+  
+  rtsp_connect(netcam);
 }
