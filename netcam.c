@@ -2009,6 +2009,7 @@ static void *netcam_handler_loop(void *arg)
                  */
             }
         }
+
         if (netcam->get_image(netcam) < 0) {
             MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: Error getting jpeg image");
             /* If FTP connection, attempt to re-connect to server. */
@@ -2021,7 +2022,10 @@ static void *netcam_handler_loop(void *arg)
             /* Attempt to re-connect to rtsp server */
             else if (netcam->rtsp) {
                 MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: Trying to re-connect to rtsp server");
-                netcam_reconnect_rtsp(netcam);
+                // initiate reconnect from motion.c main loop
+                netcam->cnt->video_dev = -1;
+                netcam->cnt->shots = 0;
+                netcam->finish = 1;
             }
             continue;
         }

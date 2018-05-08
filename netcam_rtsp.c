@@ -442,22 +442,3 @@ void netcam_shutdown_rtsp(netcam_context_ptr netcam)
     netcam->rtsp = NULL;
   }
 }
-
-void netcam_reconnect_rtsp(netcam_context_ptr netcam)
-{
-  if (!netcam->rtsp)
-  {
-    /* incorrect calling sequence */
-    return;
-  }
-  
-  if (netcam->rtsp->format_context != NULL) {
-      avformat_close_input(&netcam->rtsp->format_context);
-  }
-  
-  if (netcam->rtsp->codec_context != NULL) {
-      avcodec_close(netcam->rtsp->codec_context);
-  }
-  
-  rtsp_connect(netcam);
-}
