@@ -41,6 +41,32 @@ static void netcam_url_free(struct url_t *parse_url)
     }
 }
 
+// During blocking operations, callback is called with opaque as parameter.
+// If the callback returns 1, the blocking operation will be aborted.
+static int interrupt_cb(void *ctx)
+{
+  netcam_context *netcam = ctx;
+  if (!ctx) return 1;
+
+  if (netcam->finish) return 1;
+
+  const struct timeval TIMEOUT = {15, 0};
+  if (netcam->last_image.tv_sec)
+  {
+    struct timeval curtime;
+    if (gettimeofday(&curtime, NULL) < 0) {
+      MOTION_LOG(WRN, TYPE_NETCAM, SHOW_ERRNO, "%s: gettimeofday");
+    }
+    // check the last time a frame was captured, if exceeds timeout value, interrupt stream reading
+    if (curtime.tv_sec - netcam->last_image.tv_sec > TIMEOUT.tv_sec)
+    {
+      MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "%s: AV stream IO timeout");
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /**
  * netcam_check_buffsize
  *
@@ -213,6 +239,11 @@ static int rtsp_connect(netcam_context_ptr netcam)
     }
   }
 
+  netcam->rtsp->format_context = avformat_alloc_context( );
+  // assign the callback to check for connection status
+  netcam->rtsp->format_context->interrupt_callback.callback = interrupt_cb;
+  netcam->rtsp->format_context->interrupt_callback.opaque = (void*)netcam;
+  
   // open the network connection
   AVDictionary *opts = 0;
   av_dict_set(&opts, "rtsp_transport", "tcp", 0);

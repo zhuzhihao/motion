@@ -1221,7 +1221,7 @@ static void *motion_loop(void *arg)
 
         if (cnt->imgs.image_ring_size != frame_buffer_size) {
             image_ring_resize(cnt, frame_buffer_size);
-	}
+	    }
         
         /* Get time for current frame */
         cnt->currenttime = time(NULL);
