@@ -297,10 +297,21 @@ static int netcam_read_rtsp_image(netcam_context_ptr netcam)
 
     if(packet.stream_index != netcam->rtsp->video_stream_index) {
       // not our packet, skip
+      av_free_packet(&packet);
+      av_init_packet(&packet);
+      packet.data = NULL;
+      packet.size = 0;
       continue;
     }
 
     size_decoded = decode_packet(&packet, buffer, frame, cc);
+    if (size_decoded == 0)
+    {
+      av_free_packet(&packet);
+      av_init_packet(&packet);
+      packet.data = NULL;
+      packet.size = 0;
+    }
   }
 
   if (size_decoded == 0) {
@@ -411,7 +422,7 @@ int netcam_setup_rtsp(netcam_context_ptr netcam, struct url_t *url)
     if ((cptr = strchr(ptr, ':')) == NULL) {
       netcam->rtsp->user = mystrdup(ptr);
     } else {
-      netcam->rtsp->user = mymalloc((cptr - ptr));
+      netcam->rtsp->user = mymalloc((cptr - ptr) + 2); // +2 for string terminator
       memcpy(netcam->rtsp->user, ptr,(cptr - ptr));
       netcam->rtsp->pass = mystrdup(cptr + 1);
     }
